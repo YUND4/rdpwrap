@@ -33,13 +33,22 @@ $script:Paths = @{
     IniUrl     = 'https://raw.githubusercontent.com/YUND4/rdpwrap/master/res/rdpwrap.ini'
 }
 
+# --- Registro de ejecucion (diagnostico sin capturas de pantalla) -----------
+$script:LogFile = Join-Path $env:TEMP 'RDPWrap-Wizard.log'
+function Write-Log($msg) {
+    $line = '{0:HH:mm:ss.fff} [PID {1}] {2}' -f (Get-Date), $PID, $msg
+    try { Add-Content -Path $script:LogFile -Value $line -Encoding utf8 } catch {}
+}
+Write-Log "=== inicio wizard | admin=$isAdmin | user=$env:USERNAME | autopilot=$env:RDPWRAP_WIZARD_AUTOPILOT ==="
+if (-not $isAdmin) { Write-Log 'ADVERTENCIA: sin privilegios de administrador, varios pasos fallaran con acceso denegado' }
+
 # ============================================================================
 # XAML
 # ============================================================================
 [xml]$xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="RDP Wrapper - Asistente v1.1" Width="820" Height="600"
+        Title="RDP Wrapper - Asistente v1.2" Width="820" Height="600"
         WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
         Background="#FF1E1E2E" FontFamily="Segoe UI">
   <Window.Resources>
@@ -91,7 +100,7 @@ $script:Paths = @{
         <TextBlock Text="RDP Wrapper" Foreground="#FF89B4FA" FontSize="20" FontWeight="Bold"/>
         <TextBlock Text="Asistente de instalacion" Foreground="#FF6C7086" FontSize="12" Margin="0,2,0,24"/>
         <StackPanel x:Name="Sidebar"/>
-        <TextBlock Text="v1.1 - fork YUND4" Foreground="#FF585B70" FontSize="10" VerticalAlignment="Bottom" Margin="0,180,0,0"/>
+        <TextBlock Text="v1.2 - fork YUND4" Foreground="#FF585B70" FontSize="10" VerticalAlignment="Bottom" Margin="0,180,0,0"/>
       </StackPanel>
     </Border>
 
@@ -303,7 +312,9 @@ function New-Spinner {
     $e.Width = 18; $e.Height = 18
     $e.Stroke = [System.Windows.Media.BrushConverter]::new().ConvertFrom('#89B4FA')
     $e.StrokeThickness = 2.5
-    $e.StrokeDashArray = [System.Windows.Media.DoubleCollection]::new(@(8, 5))
+    $dash = New-Object System.Windows.Media.DoubleCollection
+    $dash.Add(8.0); $dash.Add(5.0)
+    $e.StrokeDashArray = $dash
     $e.RenderTransformOrigin = '0.5,0.5'
     $rt = New-Object System.Windows.Media.RotateTransform
     $e.RenderTransform = $rt
@@ -432,7 +443,7 @@ function Build-StepsUI($selected) {
 }
 
 # --- Ejecucion de pasos en runspace (UI responsiva) --------------------------
-$script:sync = [hashtable]::Synchronized(@{ Status=@{}; Log=@(); Creds=$null; Done=$false; TailscaleExe=$null })
+$script:sync = [hashtable]::Synchronized(@{ Status=@{}; Log=@(); Creds=$null; Done=$false; TailscaleExe=$null; LogFile=$script:LogFile })
 
 function Start-Steps($selected) {
     $ids = $selected | ForEach-Object { $_.Id }
@@ -443,7 +454,12 @@ function Start-Steps($selected) {
     $ps = [powershell]::Create(); $ps.Runspace = $rs
     $ps.AddScript({
         param($ids)
-        function Set-St($id, $st, $msg) { $sync.Status[$id] = @($st, $msg) }
+        function Write-LogR($msg) {
+            $line = '{0:HH:mm:ss.fff} [runspace] {1}' -f (Get-Date), $msg
+            try { Add-Content -Path $sync.LogFile -Value $line -Encoding utf8 } catch {}
+        }
+        function Set-St($id, $st, $msg) { $sync.Status[$id] = @($st, $msg); Write-LogR "paso ${id}: $st - $msg" }
+        Write-LogR "inicio de pasos: $($ids -join ', ')"
 
         foreach ($id in $ids) {
             try {
@@ -479,7 +495,7 @@ function Start-Steps($selected) {
                         Set-St $id 'run' 'Deshabilitando servicios de actualizacion...'
                         foreach ($s in 'wuauserv','UsoSvc') {
                             Stop-Service $s -Force -ErrorAction SilentlyContinue
-                            Set-Service $s -StartupType Disabled
+                            Set-Service $s -StartupType Disabled -ErrorAction Stop
                         }
                         $k = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
                         New-Item -Path $k -Force | Out-Null
@@ -494,14 +510,14 @@ function Start-Steps($selected) {
                         $pass = -join ($b | ForEach-Object { $chars[$_ % $chars.Length] })
                         $sec = ConvertTo-SecureString $pass -AsPlainText -Force
                         if (Get-LocalUser -Name 'rdp' -ErrorAction SilentlyContinue) {
-                            Set-LocalUser -Name 'rdp' -Password $sec -PasswordNeverExpires $true
+                            Set-LocalUser -Name 'rdp' -Password $sec -PasswordNeverExpires $true -ErrorAction Stop
                         } else {
-                            New-LocalUser -Name 'rdp' -Password $sec -PasswordNeverExpires -UserMayNotChangePassword -Description 'Cuenta dedicada RDP' | Out-Null
+                            New-LocalUser -Name 'rdp' -Password $sec -PasswordNeverExpires -UserMayNotChangePassword -Description 'Cuenta dedicada RDP' -ErrorAction Stop | Out-Null
                         }
                         $g = Get-LocalGroup | Where-Object { $_.SID.Value -like '*-555' }
                         if ($g) {
                             $m = Get-LocalGroupMember -Group $g.Name -ErrorAction SilentlyContinue | Where-Object { $_.Name -like '*\rdp' }
-                            if (-not $m) { Add-LocalGroupMember -Group $g.Name -Member 'rdp' }
+                            if (-not $m) { Add-LocalGroupMember -Group $g.Name -Member 'rdp' -ErrorAction Stop }
                         }
                         $rdpLan = Join-Path ([Environment]::GetFolderPath('Desktop')) "rdp-$env:COMPUTERNAME.rdp"
                         @("full address:s:$env:COMPUTERNAME","username:s:rdp","prompt for credentials:i:1","screen mode id:i:2","use multimon:i:1","redirectclipboard:i:1","authentication level:i:2","enablecredsspsupport:i:1") |
@@ -530,17 +546,19 @@ function Start-Steps($selected) {
                         Remove-NetFirewallRule -Name $rn -ErrorAction SilentlyContinue
                         New-NetFirewallRule -Name $rn -DisplayName 'RDP (solo Tailscale y LAN local)' `
                             -Direction Inbound -Protocol TCP -LocalPort 3389 -Action Allow `
-                            -RemoteAddress @('100.64.0.0/10','LocalSubnet') -Profile Any | Out-Null
+                            -RemoteAddress @('100.64.0.0/10','LocalSubnet') -Profile Any -ErrorAction Stop | Out-Null
                         Get-NetFirewallRule -DisplayName 'Remote Desktop' -ErrorAction SilentlyContinue |
                             Where-Object { ($_ | Get-NetFirewallPortFilter).LocalPort -eq '3389' } |
-                            Set-NetFirewallRule -RemoteAddress @('100.64.0.0/10','LocalSubnet')
+                            Set-NetFirewallRule -RemoteAddress @('100.64.0.0/10','LocalSubnet') -ErrorAction Stop
                         Set-St $id 'ok' 'Puerto 3389 limitado a Tailscale y LAN'
                     }
                 }
             } catch {
                 Set-St $id 'err' $_.Exception.Message
+                Write-LogR "paso ${id} EXCEPCION: $($_.Exception.GetType().FullName): $($_.Exception.Message) en $($_.InvocationInfo.ScriptLineNumber)"
             }
         }
+        Write-LogR 'fin de pasos'
         $sync.Done = $true
     }).AddArgument([string[]]@($ids)) | Out-Null   # array plano: (,$ids) anidaba y el foreach iteraba una sola vez
     $script:async = $ps.BeginInvoke()
@@ -585,6 +603,13 @@ $timer.Add_Tick({
 
     if ($sync.Done -and -not $script:advanced) {
         $script:advanced = $true
+        Write-Log 'pasos terminados, avanzando de pagina'
+        if ($env:RDPWRAP_WIZARD_AUTOPILOT -eq '1') {
+            foreach ($k in $sync.Status.Keys) { Write-Log "resumen ${k}: $($sync.Status[$k] -join ' | ')" }
+            Write-Log 'AUTOPILOT: fin, cerrando ventana'
+            $window.Close()
+            return
+        }
         $ui.ProgressSubtitle.Text = 'Pasos completados.'
         if ($ui.OptTailscale.IsChecked) {
             GoTo-Page 4
@@ -597,7 +622,13 @@ $timer.Add_Tick({
     }
   } catch {
     $timer.Stop()
-    [System.Windows.MessageBox]::Show("Error actualizando el progreso: $($_.Exception.Message)", 'RDP Wrapper') | Out-Null
+    Write-Log "ERROR en tick del progreso: $($_.Exception.GetType().FullName): $($_.Exception.Message) (linea $($_.InvocationInfo.ScriptLineNumber))"
+    if ($env:RDPWRAP_WIZARD_AUTOPILOT -eq '1') {
+        Write-Log 'AUTOPILOT: tick fallo, cerrando ventana'
+        $window.Close()
+    } else {
+        [System.Windows.MessageBox]::Show("Error actualizando el progreso: $($_.Exception.Message)", 'RDP Wrapper') | Out-Null
+    }
   }
 })
 
@@ -752,4 +783,22 @@ $ui.BtnCopyPass.Add_Click({
 })
 
 $window.Add_Loaded({ Update-Sidebar; Fade-In $ui.PageWelcome })
+
+# --- Autopilot (dev): ejecuta todos los pasos sin clics ---------------------
+# Uso: $env:RDPWRAP_WIZARD_AUTOPILOT='1' y lanzar el script. Los resultados
+# quedan en %TEMP%\RDPWrap-Wizard.log y la ventana se cierra sola al terminar.
+if ($env:RDPWRAP_WIZARD_AUTOPILOT -eq '1') {
+    $window.Add_Loaded({
+        Write-Log 'AUTOPILOT: seleccionando todos los pasos y arrancando'
+        foreach ($o in 'OptWrapper','OptDefender','OptWU','OptUser','OptTailscale','OptFirewall') {
+            if ($ui[$o]) { $ui[$o].IsChecked = $true }
+        }
+        $selected = $script:stepDefs | Where-Object { $ui[$_.Opt].IsChecked }
+        GoTo-Page 3
+        Build-StepsUI $selected
+        Start-Steps $selected
+        $timer.Start()
+    })
+}
 [void]$window.ShowDialog()
+Write-Log 'ventana cerrada, fin del script'
