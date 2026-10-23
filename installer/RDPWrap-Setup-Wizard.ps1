@@ -39,7 +39,7 @@ $script:Paths = @{
 [xml]$xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="RDP Wrapper - Asistente de instalacion" Width="820" Height="600"
+        Title="RDP Wrapper - Asistente v1.1" Width="820" Height="600"
         WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
         Background="#FF1E1E2E" FontFamily="Segoe UI">
   <Window.Resources>
@@ -91,7 +91,7 @@ $script:Paths = @{
         <TextBlock Text="RDP Wrapper" Foreground="#FF89B4FA" FontSize="20" FontWeight="Bold"/>
         <TextBlock Text="Asistente de instalacion" Foreground="#FF6C7086" FontSize="12" Margin="0,2,0,24"/>
         <StackPanel x:Name="Sidebar"/>
-        <TextBlock Text="v1.0 - fork YUND4" Foreground="#FF585B70" FontSize="10" VerticalAlignment="Bottom" Margin="0,180,0,0"/>
+        <TextBlock Text="v1.1 - fork YUND4" Foreground="#FF585B70" FontSize="10" VerticalAlignment="Bottom" Margin="0,180,0,0"/>
       </StackPanel>
     </Border>
 
@@ -542,7 +542,7 @@ function Start-Steps($selected) {
             }
         }
         $sync.Done = $true
-    }).AddArgument((,$ids)) | Out-Null
+    }).AddArgument([string[]]@($ids)) | Out-Null   # array plano: (,$ids) anidaba y el foreach iteraba una sola vez
     $script:async = $ps.BeginInvoke()
     $script:psRunner = $ps
 }
