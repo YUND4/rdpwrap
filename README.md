@@ -14,6 +14,29 @@ The goal of this project is to enable Remote Desktop Host support and concurrent
 
 RDP Wrapper works as a layer between Service Control Manager and Terminal Services, so the original termsrv.dll file remains untouched. Also this method is very strong against Windows Update.
 
+---
+
+## 🚀 Estado de este fork (2026)
+
+- ✅ **`rdpwrap.ini` actualizado**: 768 builds soportados, hasta Windows 11 25H2 (termsrv `10.0.29639`), con sync semanal automático desde la comunidad
+- ✅ **Build moderno**: la DLL compila con Visual Studio 2022+ (toolset v143+), CI en cada push
+- ✅ **Scripts renovados**: auto-elevación, update del INI desde este repo, backup automático
+- 📖 Documentación: [`ARCHITECTURE.md`](ARCHITECTURE.md) · [`AGENTS.md`](AGENTS.md) (guía para IAs) · [`SECURITY.md`](SECURITY.md) (auditoría)
+
+### Instalación rápida
+
+```bat
+:: 1. Descargar release de este repo (incluye binarios 1.6.2 + INI actualizado)
+:: 2. Como administrador:
+bin\install.bat
+:: 3. Verificar:
+RDPConf.exe   → debe mostrar [fully supported]
+```
+
+¿Windows Update rompió el soporte? Ejecuta `bin\update.bat` como administrador.
+
+---
+
 [pVistaST]:  http://stascorp.com/images/rdpwrap/pVistaST.jpg
 [pVistaHB]:  http://stascorp.com/images/rdpwrap/pVistaHB.jpg
 [pWin7ST]:   http://stascorp.com/images/rdpwrap/pWin7ST.jpg
@@ -90,8 +113,12 @@ It's recommended to have original termsrv.dll file with the RDP Wrapper installa
 [yt-offsets]:    http://www.youtube.com/watch?v=FiD86tmRBtk
 
 ### Links:
-- Official GitHub repository:
+- Repositorio de este fork (mantenido):
+<br>https://github.com/YUND4/rdpwrap/
+- Repositorio original (archivado):
 <br>https://github.com/stascorp/rdpwrap/
+- INI comunitario (fuente del sync semanal):
+<br>https://github.com/sebaxakerhtc/rdpwrap.ini
 - Official Telegram chat:
 <br>https://t.me/rdpwrap
 - Active discussion in the comments here:
