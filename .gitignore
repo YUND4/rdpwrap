@@ -32,3 +32,6 @@ x64/
 *.lastbuildstate
 *.suo
 .vs/
+
+# Paquete local de distribucion (binarios descargados, logs)
+dist/
