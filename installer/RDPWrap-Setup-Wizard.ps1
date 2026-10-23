@@ -6,14 +6,25 @@
 #   powershell -STA -ExecutionPolicy Bypass -File RDPWrap-Setup-Wizard.ps1
 # ============================================================================
 
-# --- Auto-elevacion ---------------------------------------------------------
+# --- Auto-elevacion (OBLIGATORIA) --------------------------------------------
+# El asistente siempre requiere administrador, sin importar como se lance
+# (doble clic en el .bat, comando directo, terminal, etc.). Si no es admin,
+# se relanza elevado via UAC; si el usuario rechaza el UAC, avisa y sale.
 # Dev: RDPWRAP_WIZARD_NOELEVATE=1 omite la elevacion (solo para probar la UI)
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin -and $env:RDPWRAP_WIZARD_NOELEVATE -ne '1') {
     $self = $PSCommandPath
     if (-not $self) { $self = $MyInvocation.MyCommand.Path }
-    Start-Process powershell -Verb RunAs -ArgumentList '-STA','-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$self`""
-    exit
+    try {
+        Start-Process powershell -Verb RunAs -ErrorAction Stop -ArgumentList '-STA','-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$self`""
+    } catch {
+        try {
+            Add-Type -AssemblyName PresentationFramework
+            [System.Windows.MessageBox]::Show("El asistente necesita permisos de administrador.`nVuelve a abrirlo y acepta el aviso de Windows (UAC).", 'RDP Wrapper - Permisos requeridos', 'OK', 'Warning') | Out-Null
+        } catch {}
+        Write-Host 'Se requieren privilegios de administrador. Ejecuta el asistente como administrador.' -ForegroundColor Yellow
+    }
+    exit 1
 }
 
 Add-Type -AssemblyName PresentationFramework
@@ -48,7 +59,7 @@ if (-not $isAdmin) { Write-Log 'ADVERTENCIA: sin privilegios de administrador, v
 [xml]$xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="RDP Wrapper - Asistente v1.2" Width="820" Height="600"
+        Title="RDP Wrapper - Asistente v1.3" Width="820" Height="600"
         WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
         Background="#FF1E1E2E" FontFamily="Segoe UI">
   <Window.Resources>
@@ -100,7 +111,7 @@ if (-not $isAdmin) { Write-Log 'ADVERTENCIA: sin privilegios de administrador, v
         <TextBlock Text="RDP Wrapper" Foreground="#FF89B4FA" FontSize="20" FontWeight="Bold"/>
         <TextBlock Text="Asistente de instalacion" Foreground="#FF6C7086" FontSize="12" Margin="0,2,0,24"/>
         <StackPanel x:Name="Sidebar"/>
-        <TextBlock Text="v1.2 - fork YUND4" Foreground="#FF585B70" FontSize="10" VerticalAlignment="Bottom" Margin="0,180,0,0"/>
+        <TextBlock Text="v1.3 - fork YUND4" Foreground="#FF585B70" FontSize="10" VerticalAlignment="Bottom" Margin="0,180,0,0"/>
       </StackPanel>
     </Border>
 
@@ -260,10 +271,16 @@ Ahora conectaras este equipo a Tailscale con TU propia cuenta (Google, Microsoft
             <TextBlock x:Name="CredPass" Text="-" Foreground="#FFF9E2AF" FontSize="20" FontWeight="Bold" Margin="2,10,0,0"/>
             <Border Background="#FF313244" CornerRadius="8" Padding="14" Margin="0,16,0,0">
               <StackPanel>
-                <TextBlock Text="Archivos .rdp generados en tu Escritorio" Foreground="#FFCDD6F4" FontWeight="SemiBold" FontSize="13.5"/>
-                <TextBlock x:Name="CredRdpFiles" Text="" Foreground="#FFA6ADC8" FontSize="12.5" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                <TextBlock Text="Archivos .rdp generados (listos para copiar)" Foreground="#FFCDD6F4" FontWeight="SemiBold" FontSize="13.5"/>
+                <TextBox x:Name="CredRdpFiles" Text="" Foreground="#FFA6ADC8" FontSize="12.5" Margin="0,6,0,0"
+                         Background="Transparent" BorderThickness="0" IsReadOnly="True" TextWrapping="Wrap"
+                         FontFamily="Consolas" Cursor="IBeam"/>
                 <TextBlock Text="Copia el .rdp a cualquier equipo cliente, abrelo con mstsc y usa estas credenciales."
                            Foreground="#FF6C7086" FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                  <Button x:Name="BtnCopyRdp" Style="{StaticResource BtnGhost}" Content="Copiar rutas"/>
+                  <Button x:Name="BtnOpenRdp" Style="{StaticResource BtnGhost}" Content="Abrir carpeta" Margin="8,0,0,0"/>
+                </StackPanel>
               </StackPanel>
             </Border>
           </StackPanel>
@@ -300,7 +317,7 @@ $ui = @{}
 foreach ($n in @('Sidebar','PageWelcome','PageHow','PageOptions','PageProgress','PageTailscale','PageCreds','PageFinish',
                  'BtnBack','BtnNext','OptWrapper','OptDefender','OptUser','OptTailscale','OptFirewall','OptWU',
                  'StepsPanel','OverallBar','ProgressSubtitle','TsStatus','TsDetail','TsLoginPanel','BtnTsUrl','TsUrlText',
-                 'TsDonePanel','TsIpText','TsAccountText','CredUser','CredPass','CredRdpFiles','BtnCopyPass','FinishSummary','FinishIcon')) {
+                 'TsDonePanel','TsIpText','TsAccountText','CredUser','CredPass','CredRdpFiles','BtnCopyPass','BtnCopyRdp','BtnOpenRdp','FinishSummary','FinishIcon')) {
     $ui[$n] = $window.FindName($n)
 }
 
@@ -724,7 +741,8 @@ function Show-Creds {
         $ui.CredUser.Text = $sync.Creds.User
         $ui.CredPass.Text = $sync.Creds.Pass
         $files = @($sync.Creds.RdpLan, $sync.Creds.RdpTs) | Where-Object { $_ }
-        $ui.CredRdpFiles.Text = ($files | ForEach-Object { "- $_" }) -join "`n"
+        $ui.CredRdpFiles.Text = ($files -join "`r`n")
+        Write-Log "credenciales mostradas; rdp: $($files -join ' | ')"
     } else {
         $ui.CredUser.Text = '(no se creo usuario)'
         $ui.CredPass.Text = '-'
@@ -740,6 +758,11 @@ function Build-Summary {
         $lines += "$mark $name - $msg"
     }
     if ($script:tsConnectedIp) { $lines += "[OK] Tailscale conectado: $($script:tsConnectedIp)" }
+    if ($sync.Creds) {
+        $lines += ''
+        $lines += "Usuario RDP: $($sync.Creds.User)"
+        foreach ($f in @($sync.Creds.RdpLan, $sync.Creds.RdpTs) | Where-Object { $_ }) { $lines += "Archivo: $f" }
+    }
     $ui.FinishSummary.Text = ($lines -join "`n")
     Pop-In $ui.FinishIcon
 }
@@ -780,6 +803,25 @@ $ui.BtnTsUrl.Add_Click({
 $ui.BtnCopyPass.Add_Click({
     if ($sync.Creds) { [System.Windows.Clipboard]::SetText($sync.Creds.Pass) }
     $ui.BtnCopyPass.Content = 'Copiada!'
+})
+
+$ui.BtnCopyRdp.Add_Click({
+    if ($sync.Creds) {
+        $files = @($sync.Creds.RdpLan, $sync.Creds.RdpTs) | Where-Object { $_ }
+        if ($files) {
+            [System.Windows.Clipboard]::SetText(($files -join "`r`n"))
+            $ui.BtnCopyRdp.Content = 'Copiadas!'
+            Write-Log "rutas .rdp copiadas al portapapeles"
+        }
+    }
+})
+
+$ui.BtnOpenRdp.Add_Click({
+    if ($sync.Creds -and $sync.Creds.RdpLan -and (Test-Path $sync.Creds.RdpLan)) {
+        Start-Process explorer.exe -ArgumentList "/select,`"$($sync.Creds.RdpLan)`""
+    } else {
+        Start-Process explorer.exe -ArgumentList ([Environment]::GetFolderPath('Desktop'))
+    }
 })
 
 $window.Add_Loaded({ Update-Sidebar; Fade-In $ui.PageWelcome })
