@@ -30,6 +30,12 @@ docs/                guia-instalacion.md (flujo host/cliente + sección para IA)
 ## Asistente GUI (installer/)
 
 - Auto-elevación UAC obligatoria (dev: `RDPWRAP_WIZARD_NOELEVATE=1` la omite).
+- Multiidioma EN (defecto) / ES: combo en la barra lateral o `RDPWRAP_WIZARD_LANG`.
+ Todas las cadenas viven en `$script:Strings` (añadir clave en AMBOS idiomas).
+- Verificación INI: la página de opciones muestra si el INI soporta el build local
+ de termsrv.dll; el paso `ini` valida `[X.Y.Z.W]` + `[X.Y.Z.W-SLInit]` y, si falta,
+ descarga el INI comunitario (fallback: fork). OJO: FileVersion trae sufijo
+ "(WinBuild...)" — usar FileMajorPart/MinorPart/BuildPart/PrivatePart.
 - Log SIEMPRE en `%TEMP%\RDPWrap-Wizard.log` (admin, pasos, excepciones con línea).
 - Autopilot para pruebas sin UI: `RDPWRAP_WIZARD_AUTOPILOT=1` → ejecuta los 7
   pasos, exporta el paquete cliente al Escritorio y se cierra solo (~5s).
