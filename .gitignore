@@ -15,3 +15,20 @@ __history/
 # MSI local stuff
 *.wixobj
 *.wixpdb
+
+# Visual Studio build output
+[Rr]elease/
+[Dd]ebug/
+x64/
+*.tlog
+*.recipe
+*.iobj
+*.ipdb
+*.pch
+*.obj
+*.exp
+*.lib
+*.pdb
+*.lastbuildstate
+*.suo
+.vs/
