@@ -1,11 +1,14 @@
-# RDP Wrapper Library by Stas'M
+# RDP Wrapper Library — fork mantenido (basado en Stas'M)
+
+> **Fork personal mantenido de [stascorp/rdpwrap](https://github.com/stascorp/rdpwrap)** (proyecto original archivado).
+> Se mantiene el `rdpwrap.ini` actualizado con los builds recientes de Windows 10/11
+> y se modernizan instalador, build y documentación. Ver `ARCHITECTURE.md`.
+> Créditos completos al autor original **Stas'M (binarymaster)** y a la comunidad.
 
 [![Telegram](https://img.shields.io/badge/chat-Telegram-blue.svg)](https://t.me/rdpwrap)
-![Environment](https://img.shields.io/badge/Windows-Vista,%207,%208,%2010-brightgreen.svg)
-[![Release](https://img.shields.io/github/release/stascorp/rdpwrap.svg)](https://github.com/stascorp/rdpwrap/releases)
-![License](https://img.shields.io/github/license/stascorp/rdpwrap.svg)
-![Downloads](https://img.shields.io/github/downloads/stascorp/rdpwrap/latest/total.svg)
-![TotalDownloads](https://img.shields.io/github/downloads/stascorp/rdpwrap/total.svg)
+![Environment](https://img.shields.io/badge/Windows-Vista,%207,%208,%2010,%2011-brightgreen.svg)
+[![Release](https://img.shields.io/github/release/YUND4/rdpwrap.svg)](https://github.com/YUND4/rdpwrap/releases)
+![License](https://img.shields.io/github/license/YUND4/rdpwrap.svg)
 
 The goal of this project is to enable Remote Desktop Host support and concurrent RDP sessions on reduced functionality systems for home usage.
 
