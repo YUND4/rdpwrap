@@ -1,0 +1,43 @@
+name: Sync INI comunidad
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # Lunes 06:00 UTC
+  workflow_dispatch:       # Permite ejecutarlo manualmente
+
+jobs:
+  sync:
+    name: Sincronizar rdpwrap.ini desde sebaxakerhtc/rdpwrap.ini
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Descargar INI comunitario y comparar
+        shell: pwsh
+        id: sync
+        run: |
+          $header = "; RDP Wrapper Library configuration`r`n; Fork YUND4/rdpwrap - INI sincronizado con sebaxakerhtc/rdpwrap.ini (comunidad)`r`n"
+          $url = 'https://raw.githubusercontent.com/sebaxakerhtc/rdpwrap.ini/master/rdpwrap.ini'
+          $tmp = Join-Path $env:TEMP 'rdpwrap-upstream.ini'
+          Invoke-WebRequest -Uri $url -OutFile $tmp -UseBasicParsing
+          $new = $header + (Get-Content $tmp -Raw)
+          $current = Get-Content 'res/rdpwrap.ini' -Raw
+          if ($new -eq $current) {
+            Write-Host 'INI ya esta al dia'
+            echo "changed=false" >> $env:GITHUB_OUTPUT
+          } else {
+            [System.IO.File]::WriteAllText("$PWD/res/rdpwrap.ini", $new)
+            Write-Host 'INI actualizado'
+            echo "changed=true" >> $env:GITHUB_OUTPUT
+          }
+      - name: Validar INI resultante
+        if: steps.sync.outputs.changed == 'true'
+        shell: pwsh
+        run: ./tools/Test-RdpWrapIni.ps1
+      - name: Commit y push
+        if: steps.sync.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add res/rdpwrap.ini
+          git commit -m "INI: sync semanal desde sebaxakerhtc/rdpwrap.ini"
+          git push

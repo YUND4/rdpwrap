@@ -1,0 +1,41 @@
+name: Build & Validate
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  lint-ini:
+    name: Validar rdpwrap.ini
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint INI
+        shell: pwsh
+        run: ./tools/Test-RdpWrapIni.ps1
+
+  build-dll:
+    name: Compilar rdpwrap.dll (${{ matrix.platform }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [Win32, x64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: microsoft/setup-msbuild@v2
+      - name: Compilar DLL
+        # El proyecto es VS2013 (v120); se retarguetea al toolset moderno
+        run: >
+          msbuild src-x86-x64-Fusix\RDPWrap.sln
+          /p:Configuration=Release
+          /p:Platform=${{ matrix.platform }}
+          /p:PlatformToolset=v143
+          /p:WindowsTargetPlatformVersion=10.0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rdpwrap-${{ matrix.platform }}
+          path: |
+            src-x86-x64-Fusix/**/Release/rdpwrap.dll
+            src-x86-x64-Fusix/Release/rdpwrap.dll
