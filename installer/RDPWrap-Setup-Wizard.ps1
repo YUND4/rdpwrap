@@ -150,12 +150,15 @@ en = @{
     TsConnected = 'Connection established.'
     TsIpLabel      = 'Private IP of this PC:  {0}'
     TsAccountLabel = 'Network owner account:  {0}'
-    BtnTsLogin  = 'Tailscale login'
+    BtnTsLogin  = 'Sign in to Tailscale'
     BtnTsRepair = 'Repair connection'
     CredsTitle = 'Access credentials'
     CredsWarn  = 'Store them somewhere safe: the password will not be shown again.'
     CredsUserLabel = 'User'
     CredsPassLabel = 'Password'
+    CredsLocalIpLabel = 'Local IP (LAN)'
+    CredsTsIpLabel    = 'Tailscale IP'
+    NotConnected = '(not connected)'
     BtnCopy    = 'Copy'
     CopiedPass = 'Copied!'
     CredsFilesTitle = 'Generated .rdp files (ready to copy)'
@@ -177,9 +180,11 @@ en = @{
     ExportCredTxt = @"
 RDP Wrapper - Remote access credentials
 ========================================
-Host PC:    {0}
-User:       {1}
-Password:   {2}
+Host PC:      {0}
+User:         {1}
+Password:     {2}
+Local IP:     {3}
+Tailscale IP: {4}
 
 Included .rdp files:
 - rdp-{0}.rdp            (same local network / LAN)
@@ -272,12 +277,15 @@ es = @{
     TsConnected = 'Conexion establecida.'
     TsIpLabel      = 'IP privada de este equipo:  {0}'
     TsAccountLabel = 'Cuenta propietaria de la red:  {0}'
-    BtnTsLogin  = 'Login Tailscale'
+    BtnTsLogin  = 'Iniciar sesion en Tailscale'
     BtnTsRepair = 'Reparar conexion'
     CredsTitle = 'Credenciales de acceso'
     CredsWarn  = 'Guardalas en un lugar seguro: la contrasena no se volvera a mostrar.'
     CredsUserLabel = 'Usuario'
     CredsPassLabel = 'Contrasena'
+    CredsLocalIpLabel = 'IP local (LAN)'
+    CredsTsIpLabel    = 'IP Tailscale'
+    NotConnected = '(sin conexion)'
     BtnCopy    = 'Copiar'
     CopiedPass = 'Copiada!'
     CredsFilesTitle = 'Archivos .rdp generados (listos para copiar)'
@@ -302,6 +310,8 @@ RDP Wrapper - Credenciales de acceso remoto
 Equipo host:  {0}
 Usuario:      {1}
 Contrasena:   {2}
+IP local:     {3}
+IP Tailscale: {4}
 
 Archivos .rdp incluidos:
 - rdp-{0}.rdp            (misma red local / LAN)
@@ -352,6 +362,10 @@ $script:S = $script:Strings[$script:Lang]
     <Style TargetType="Button" x:Key="BtnGhost" BasedOn="{StaticResource BtnPrimary}">
       <Setter Property="Background" Value="#FF45475A"/>
       <Setter Property="Foreground" Value="#FFCDD6F4"/>
+    </Style>
+    <Style TargetType="Button" x:Key="BtnWarn" BasedOn="{StaticResource BtnPrimary}">
+      <Setter Property="Background" Value="#FFF9E2AF"/>
+      <Setter Property="Foreground" Value="#FF11111B"/>
     </Style>
     <Style TargetType="CheckBox">
       <Setter Property="Foreground" Value="#FFCDD6F4"/>
@@ -488,8 +502,8 @@ $script:S = $script:Strings[$script:Lang]
                 <TextBlock x:Name="TsStatus" Text="Tailscale instalado. Listo para conectar." Foreground="#FFCDD6F4" FontSize="14" TextWrapping="Wrap"/>
                 <TextBlock x:Name="TsDetail" Text="" Foreground="#FF6C7086" FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap"/>
                 <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                  <Button x:Name="BtnTsLogin" Style="{StaticResource BtnGhost}" Content="Login Tailscale"/>
-                  <Button x:Name="BtnTsRepair" Style="{StaticResource BtnGhost}" Content="Reparar conexion" Margin="8,0,0,0"/>
+                  <Button x:Name="BtnTsLogin" Style="{StaticResource BtnPrimary}" Content="Sign in to Tailscale"/>
+                  <Button x:Name="BtnTsRepair" Style="{StaticResource BtnWarn}" Content="Repair connection" Margin="8,0,0,0"/>
                 </StackPanel>
               </StackPanel>
             </Border>
@@ -531,6 +545,17 @@ $script:S = $script:Strings[$script:Lang]
                              Background="Transparent" BorderThickness="0" IsReadOnly="True" VerticalContentAlignment="Center" Cursor="IBeam"/>
                   </Border>
                   <Button Grid.Column="1" x:Name="BtnCopyPass" Style="{StaticResource BtnGhost}" Content="Copiar" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                </Grid>
+                <Grid Margin="0,14,0,0">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                  <StackPanel Grid.Column="0">
+                    <TextBlock x:Name="CredsLocalIpLabel" Foreground="#FF6C7086" FontSize="12"/>
+                    <TextBlock x:Name="CredsLocalIp" Text="-" Foreground="#FFCDD6F4" FontSize="15" FontWeight="Bold" FontFamily="Consolas" Margin="0,2,0,0"/>
+                  </StackPanel>
+                  <StackPanel Grid.Column="1">
+                    <TextBlock x:Name="CredsTsIpLabel" Foreground="#FF6C7086" FontSize="12"/>
+                    <TextBlock x:Name="CredsTsIp" Text="-" Foreground="#FFCDD6F4" FontSize="15" FontWeight="Bold" FontFamily="Consolas" Margin="0,2,0,0"/>
+                  </StackPanel>
                 </Grid>
               </StackPanel>
             </Border>
@@ -587,6 +612,7 @@ foreach ($n in @('Sidebar','SidebarSubtitle','LangCombo','PageWelcome','PageHow'
                  'StepsPanel','OverallBar','ProgressSubtitle','TsTitle','TsIntro','TsStatus','TsDetail','TsLoginPanel','BtnTsUrl','TsUrlText','BtnTsLogin','BtnTsRepair',
                  'TsLoginStep1','TsLoginStep2','TsDoneTitle','TsDonePanel','TsIpText','TsAccountText',
                  'CredsTitle','CredsWarn','CredsUserLabel','CredsFilesTitle','CredsFilesNote',
+                 'CredsLocalIpLabel','CredsLocalIp','CredsTsIpLabel','CredsTsIp',
                  'WelcomeTitle','CredPassLabel',
                  'CredUser','CredPass','CredRdpFiles','BtnCopyPass','BtnCopyRdp','BtnOpenRdp','BtnExportClient','FinishTitle','FinishSummary','FinishIcon')) {
     $ui[$n] = $window.FindName($n)
@@ -762,6 +788,7 @@ function Apply-Language {
     # Credenciales
     $ui.CredsTitle.Text = $S.CredsTitle; $ui.CredsWarn.Text = $S.CredsWarn
     $ui.CredsUserLabel.Text = $S.CredsUserLabel; $ui.CredPassLabel.Text = $S.CredsPassLabel
+    $ui.CredsLocalIpLabel.Text = $S.CredsLocalIpLabel; $ui.CredsTsIpLabel.Text = $S.CredsTsIpLabel
     $ui.BtnCopyPass.Content = $S.BtnCopy
     $ui.CredsFilesTitle.Text = $S.CredsFilesTitle; $ui.CredsFilesNote.Text = $S.CredsFilesNote
     $ui.BtnCopyRdp.Content = $S.BtnCopyPaths; $ui.BtnOpenRdp.Content = $S.BtnOpenFolder
@@ -1069,10 +1096,27 @@ function Get-TsExe {
 }
 
 function Get-TsState($exe) {
-    # NoState: el demonio no responde aun (pegado o iniciando)
-    $sj = & $exe status --json 2>$null | ConvertFrom-Json
+    # NoState: el demonio no responde aun (pegado o iniciando).
+    # OJO: mientras arranca, 'status --json' puede devolver texto plano en vez
+    # de JSON; sin try/catch la excepcion mata el proceso (cierre abrupto).
+    $sj = $null
+    try { $sj = & $exe status --json 2>$null | ConvertFrom-Json -ErrorAction Stop } catch {}
     $state = if ($sj -and $sj.BackendState) { $sj.BackendState } else { 'NoState' }
     return [pscustomobject]@{ State=$state; Json=$sj }
+}
+
+function Get-LocalLanIp {
+    # IP local de la LAN (interfaz con gateway por defecto, excluyendo Tailscale)
+    try {
+        $gw = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Sort-Object RouteMetric | Select-Object -First 1
+        if ($gw) {
+            $ip = Get-NetIPAddress -AddressFamily IPv4 -InterfaceIndex $gw.InterfaceIndex -ErrorAction SilentlyContinue |
+                Where-Object { $_.IPAddress -notmatch '^(127\.|169\.254\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.)' } |
+                Select-Object -First 1
+            if ($ip) { return $ip.IPAddress }
+        }
+    } catch {}
+    return $null
 }
 
 function Start-TsLogin {
@@ -1110,6 +1154,7 @@ function Start-TsLogin {
     $script:tsTimer = New-Object System.Windows.Threading.DispatcherTimer
     $script:tsTimer.Interval = [TimeSpan]::FromSeconds(2)
     $script:tsTimer.Add_Tick({
+      try {
         $script:tsTicks++
         $exe2 = Get-TsExe
         # Buscar URL de login -> abrirla en el navegador automaticamente
@@ -1128,14 +1173,23 @@ function Start-TsLogin {
         # Estado
         $st = Get-TsState $exe2
         if ($st.State -eq 'Running') {
-            Write-Log 'tailscale: conectado'
-            $script:tsTimer.Stop()
-            Show-TsConnected $st.Json
+            # Running pero sin IP asignada todavia: reintentar en el proximo tick
+            $ipOk = $null
+            try { $ipOk = $st.Json.Self.TailscaleIPs[0] } catch {}
+            if ($ipOk) {
+                Write-Log 'tailscale: conectado'
+                $script:tsTimer.Stop()
+                Show-TsConnected $st.Json
+            }
         } elseif ($script:tsTicks -eq 15 -and $st.State -eq 'NoState') {
             # 30s en NoState: demonio pegado, ofrecer reparacion
             Write-Log 'tailscale: demonio pegado en NoState, sugiriendo reparacion'
             $ui.TsDetail.Text = $script:S.TsStuck
         }
+      } catch {
+        # Nunca dejar que una excepcion del tick mate la ventana
+        Write-Log "tailscale: error en tick de login: $($_.Exception.GetType().Name): $($_.Exception.Message)"
+      }
     })
     $script:tsTimer.Start()
 }
@@ -1160,14 +1214,18 @@ function Init-TailscalePage {
     $st = Get-TsState $exe
     Write-Log "tailscale: estado al entrar a la pagina: $($st.State)"
     if ($st.State -eq 'Running') {
-        Show-TsConnected $st.Json
-        return
+        $ipOk = $null
+        try { $ipOk = $st.Json.Self.TailscaleIPs[0] } catch {}
+        if ($ipOk) { Show-TsConnected $st.Json; return }
+        Write-Log 'tailscale: Running sin IP todavia, monitoreando...'
     }
     Start-TsLogin
 }
 
 function Show-TsConnected($sj) {
-    $ip = $sj.Self.TailscaleIPs[0]
+    $ip = $null
+    try { $ip = $sj.Self.TailscaleIPs[0] } catch {}
+    if (-not $ip) { Write-Log 'tailscale: Show-TsConnected sin IP (json incompleto)'; return }
     $account = ''
     if ($sj.User -and $sj.Self.UserID) {
         $uid = "$($sj.Self.UserID)"
@@ -1229,7 +1287,10 @@ function Export-ClientPackage {
 
     foreach ($f in @($c.RdpLan, $c.RdpTs) | Where-Object { $_ -and (Test-Path $_) }) { Copy-Item $f $stage }
 
-    $credTxt = $script:S.ExportCredTxt -f $env:COMPUTERNAME, $c.User, $c.Pass
+    $lanIp = Get-LocalLanIp
+    $lanTxt = if ($lanIp) { $lanIp } else { $script:S.NotConnected }
+    $tsTxt = if ($tsIp) { $tsIp } else { $script:S.NotConnected }
+    $credTxt = $script:S.ExportCredTxt -f $env:COMPUTERNAME, $c.User, $c.Pass, $lanTxt, $tsTxt
     [System.IO.File]::WriteAllText((Join-Path $stage 'credenciales.txt'), $credTxt, (New-Object System.Text.UTF8Encoding $true))
 
     # Plantillas del cliente (README, instalador) con sustitucion de valores
@@ -1241,8 +1302,11 @@ function Export-ClientPackage {
         [System.IO.File]::WriteAllText((Join-Path $stage $t.Name), $content, $enc)
     }
 
-    $zip = Join-Path ([Environment]::GetFolderPath('Desktop')) "RDPWrap-Cliente-$env:COMPUTERNAME.zip"
-    Remove-Item $zip -Force -ErrorAction SilentlyContinue
+    # El paquete va a Descargas con timestamp para no sobrescribir exportaciones
+    $dl = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads'
+    New-Item -ItemType Directory -Path $dl -Force | Out-Null
+    $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+    $zip = Join-Path $dl "RDPWrap-Client-$env:COMPUTERNAME-$stamp.zip"
     Compress-Archive -Path "$stage\*" -DestinationPath $zip -CompressionLevel Optimal
     Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
     Write-Log "paquete cliente exportado: $zip"
@@ -1250,6 +1314,20 @@ function Export-ClientPackage {
 }
 
 function Show-Creds {
+    # IPs de acceso: local (LAN) y Tailscale
+    $lanIp = Get-LocalLanIp
+    $ui.CredsLocalIp.Text = if ($lanIp) { $lanIp } else { $script:S.NotConnected }
+    $tsIpShow = $script:tsConnectedIp
+    if (-not $tsIpShow) {
+        $tsExe = Get-TsExe
+        if ($tsExe) {
+            try {
+                $t = & $tsExe ip -4 2>$null | Select-Object -First 1
+                if ("$t".Trim() -match '^100\.') { $tsIpShow = "$t".Trim() }
+            } catch {}
+        }
+    }
+    $ui.CredsTsIp.Text = if ($tsIpShow) { $tsIpShow } else { $script:S.NotConnected }
     if ($sync.Creds) {
         $ui.CredUser.Text = $sync.Creds.User
         $ui.CredPass.Text = $sync.Creds.Pass
@@ -1325,7 +1403,10 @@ $ui.BtnTsRepair.Add_Click({
     # Dejar que la UI repinte antes de bloquear con el reinicio del servicio
     $t = New-Object System.Windows.Threading.DispatcherTimer
     $t.Interval = [TimeSpan]::FromMilliseconds(300)
-    $t.Add_Tick({ $t.Stop(); Repair-TsService })
+    $t.Add_Tick({
+        $t.Stop()
+        try { Repair-TsService } catch { Write-Log "tailscale: error reparando: $($_.Exception.Message)" }
+    })
     $t.Start()
 })
 
