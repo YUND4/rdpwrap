@@ -26,12 +26,12 @@ if ($existing) {
     Set-LocalUser -Name $Username -Password $secure -PasswordNeverExpires $true
     Write-Host "[*] Usuario '$Username' ya existia: contrasena regenerada"
 } else {
-    New-LocalUser -Name $Username -Password $secure -PasswordNeverExpires $true -UserMayNotChangePassword -Description "Cuenta dedicada para acceso RDP remoto" | Out-Null
+    New-LocalUser -Name $Username -Password $secure -PasswordNeverExpires -UserMayNotChangePassword -Description "Cuenta dedicada para acceso RDP remoto" | Out-Null
     Write-Host "[+] Usuario local '$Username' creado"
 }
 
 # Agregar al grupo Remote Desktop Users (nombre varia segun idioma del SO)
-$rdpGroup = Get-LocalGroup | Where-Object { $_.SID.Value -like '*-553' }  # SID bien conocido
+$rdpGroup = Get-LocalGroup | Where-Object { $_.SID.Value -like '*-555' }  # SID bien conocido: Remote Desktop Users
 if ($rdpGroup) {
     $isMember = Get-LocalGroupMember -Group $rdpGroup.Name -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*\$Username" }
     if (-not $isMember) { Add-LocalGroupMember -Group $rdpGroup.Name -Member $Username }
