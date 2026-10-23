@@ -1126,7 +1126,12 @@ function Start-TsLogin {
     Write-Log 'tailscale: iniciando flujo de login (up)'
     $ui.TsStatus.Text = $script:S.TsStarting
     $ui.TsDetail.Text = ''
-    $outFile = "$env:TEMP\ts-up-output.txt"
+    # Cerrar el intento previo: el StreamWriter abierto bloquea el archivo y
+    # un segundo clic en Login fallaba con "archivo en uso por otro proceso"
+    if ($script:tsOutWriter) { try { $script:tsOutWriter.Close(); $script:tsOutWriter.Dispose() } catch {}; $script:tsOutWriter = $null }
+    $script:tsProc = $null
+    # Nombre unico por intento: evita colisiones si algo mas retiene el archivo
+    $outFile = Join-Path $env:TEMP ("ts-up-output-{0:HHmmss}.txt" -f (Get-Date))
     $script:tsOutFile = $outFile
     Remove-Item $outFile -Force -ErrorAction SilentlyContinue
     try {
@@ -1172,6 +1177,11 @@ function Start-TsLogin {
         }
         # Estado
         $st = Get-TsState $exe2
+        # 'tailscale up' salio solo sin URL ni conexion: demonio pegado
+        if ($script:tsProc -and $script:tsProc.HasExited -and $ui.TsLoginPanel.Visibility -ne 'Visible' -and $st.State -ne 'Running') {
+            Write-Log "tailscale: up salio por si solo (codigo $($script:tsProc.ExitCode)) sin conectar"
+            $ui.TsDetail.Text = $script:S.TsStuck
+        }
         if ($st.State -eq 'Running') {
             # Running pero sin IP asignada todavia: reintentar en el proximo tick
             $ipOk = $null
@@ -1199,8 +1209,14 @@ function Repair-TsService {
     $ui.TsStatus.Text = $script:S.TsRepairing
     $ui.TsDetail.Text = $script:S.TsRepairDetail
     if ($script:tsTimer) { $script:tsTimer.Stop() }
-    Restart-Service Tailscale -Force -ErrorAction SilentlyContinue
-    Start-Sleep -Seconds 8
+    # sc.exe es asincrono: Restart-Service se cuelga indefinidamente cuando el
+    # servicio Tailscale esta pegado y congela toda la ventana
+    Get-Process tailscaled -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    & sc.exe stop Tailscale 2>&1 | Out-Null
+    Start-Sleep -Seconds 4
+    & sc.exe start Tailscale 2>&1 | Out-Null
+    Start-Sleep -Seconds 6
+    Write-Log 'tailscale: reparacion intentada, re-inicializando pagina'
     Init-TailscalePage
 }
 
