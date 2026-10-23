@@ -18,10 +18,26 @@ src-installer/       RDPWInst.exe (Delphi) — instalador
 src-rdpcheck/        RDPCheck.exe (Delphi) — prueba loopback
 src-rdpconfig/       RDPConf.exe (Delphi) — config UI
 res/rdpwrap.ini      Offsets por build de termsrv.dll (PIEZA CRÍTICA)
+installer/           Asistente GUI WPF (RDPWrap-Setup-Wizard.ps1) + desinstalador
+                     (Uninstall-RDPWrap.ps1) + reparador (Reparar-Tailscale.ps1)
+                     + Empaquetar-host.ps1 (zip) + cliente/ (plantillas cliente)
 bin/                 install/update/uninstall .bat + update-ini.ps1
-tools/               Test-RdpWrapIni.ps1 (lint del INI)
+tools/               Test-RdpWrapIni.ps1 (lint del INI), RDPWrap-Monitor.ps1
+docs/                guia-instalacion.md (flujo host/cliente + sección para IA)
 .github/workflows/   build.yml (lint+compilar) y sync-ini.yml (sync semanal INI)
 ```
+
+## Asistente GUI (installer/)
+
+- Auto-elevación UAC obligatoria (dev: `RDPWRAP_WIZARD_NOELEVATE=1` la omite).
+- Log SIEMPRE en `%TEMP%\RDPWrap-Wizard.log` (admin, pasos, excepciones con línea).
+- Autopilot para pruebas sin UI: `RDPWRAP_WIZARD_AUTOPILOT=1` → ejecuta los 7
+  pasos, exporta el paquete cliente al Escritorio y se cierra solo (~5s).
+- "Exportar paquete cliente" genera zip con .rdp + credenciales.txt +
+  plantillas de `installer/cliente/` (placeholders `{{HOST}}`/`{{TSIP}}`/`{{USER}}`).
+- Regla de oro Tailscale: JAMÁS matar un `tailscale up` en curso (cancela la
+  autenticación y deja el demonio en WantRunning=false). El CLI solo funciona
+  elevado; sin admin reporta NoState engañosamente.
 
 ## Comandos
 

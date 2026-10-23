@@ -59,7 +59,7 @@ if (-not $isAdmin) { Write-Log 'ADVERTENCIA: sin privilegios de administrador, v
 [xml]$xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="RDP Wrapper - Asistente v1.3" Width="820" Height="600"
+        Title="RDP Wrapper - Asistente v1.5" Width="820" Height="600"
         WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
         Background="#FF1E1E2E" FontFamily="Segoe UI">
   <Window.Resources>
@@ -111,7 +111,7 @@ if (-not $isAdmin) { Write-Log 'ADVERTENCIA: sin privilegios de administrador, v
         <TextBlock Text="RDP Wrapper" Foreground="#FF89B4FA" FontSize="20" FontWeight="Bold"/>
         <TextBlock Text="Asistente de instalacion" Foreground="#FF6C7086" FontSize="12" Margin="0,2,0,24"/>
         <StackPanel x:Name="Sidebar"/>
-        <TextBlock Text="v1.3 - fork YUND4" Foreground="#FF585B70" FontSize="10" VerticalAlignment="Bottom" Margin="0,180,0,0"/>
+        <TextBlock Text="v1.5 - fork YUND4" Foreground="#FF585B70" FontSize="10" VerticalAlignment="Bottom" Margin="0,180,0,0"/>
       </StackPanel>
     </Border>
 
@@ -228,6 +228,10 @@ Ahora conectaras este equipo a Tailscale con TU propia cuenta (Google, Microsoft
               <StackPanel>
                 <TextBlock x:Name="TsStatus" Text="Tailscale instalado. Listo para conectar." Foreground="#FFCDD6F4" FontSize="14" TextWrapping="Wrap"/>
                 <TextBlock x:Name="TsDetail" Text="" Foreground="#FF6C7086" FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                  <Button x:Name="BtnTsLogin" Style="{StaticResource BtnGhost}" Content="Login Tailscale"/>
+                  <Button x:Name="BtnTsRepair" Style="{StaticResource BtnGhost}" Content="Reparar conexion" Margin="8,0,0,0"/>
+                </StackPanel>
               </StackPanel>
             </Border>
 
@@ -259,16 +263,20 @@ Ahora conectaras este equipo a Tailscale con TU propia cuenta (Google, Microsoft
             <TextBlock Text="Guardalas en un lugar seguro: la contrasena no se volvera a mostrar."
                        Foreground="#FFF9E2AF" FontSize="12.5" Margin="0,6,0,14"/>
             <Border Background="#FF313244" CornerRadius="8" Padding="16">
-              <Grid>
-                <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                <TextBlock Grid.Row="0" Text="Usuario" Foreground="#FF6C7086" FontSize="12"/>
-                <TextBlock Grid.Row="1" x:Name="CredUser" Text="-" Foreground="#FFCDD6F4" FontSize="18" FontWeight="Bold"/>
-                <TextBlock Grid.Row="2" x:Name="CredPassLabel" Text="Contrasena" Foreground="#FF6C7086" FontSize="12" Margin="0,10,0,0"/>
-                <Button Grid.Row="1" Grid.Column="1" x:Name="BtnCopyPass" Style="{StaticResource BtnGhost}" Content="Copiar contrasena" VerticalAlignment="Center"/>
-              </Grid>
+              <StackPanel>
+                <TextBlock Text="Usuario" Foreground="#FF6C7086" FontSize="12"/>
+                <TextBlock x:Name="CredUser" Text="-" Foreground="#FFCDD6F4" FontSize="18" FontWeight="Bold" Margin="0,2,0,12"/>
+                <TextBlock x:Name="CredPassLabel" Text="Contrasena" Foreground="#FF6C7086" FontSize="12"/>
+                <Grid Margin="0,4,0,0">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <Border Grid.Column="0" Background="#FF181825" CornerRadius="6" Padding="12,6" VerticalAlignment="Center">
+                    <TextBox x:Name="CredPass" Text="-" Foreground="#FFF9E2AF" FontSize="17" FontWeight="Bold" FontFamily="Consolas"
+                             Background="Transparent" BorderThickness="0" IsReadOnly="True" VerticalContentAlignment="Center" Cursor="IBeam"/>
+                  </Border>
+                  <Button Grid.Column="1" x:Name="BtnCopyPass" Style="{StaticResource BtnGhost}" Content="Copiar" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                </Grid>
+              </StackPanel>
             </Border>
-            <TextBlock x:Name="CredPass" Text="-" Foreground="#FFF9E2AF" FontSize="20" FontWeight="Bold" Margin="2,10,0,0"/>
             <Border Background="#FF313244" CornerRadius="8" Padding="14" Margin="0,16,0,0">
               <StackPanel>
                 <TextBlock Text="Archivos .rdp generados (listos para copiar)" Foreground="#FFCDD6F4" FontWeight="SemiBold" FontSize="13.5"/>
@@ -280,6 +288,7 @@ Ahora conectaras este equipo a Tailscale con TU propia cuenta (Google, Microsoft
                 <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                   <Button x:Name="BtnCopyRdp" Style="{StaticResource BtnGhost}" Content="Copiar rutas"/>
                   <Button x:Name="BtnOpenRdp" Style="{StaticResource BtnGhost}" Content="Abrir carpeta" Margin="8,0,0,0"/>
+                  <Button x:Name="BtnExportClient" Style="{StaticResource BtnGhost}" Content="Exportar paquete cliente (.zip)" Margin="8,0,0,0"/>
                 </StackPanel>
               </StackPanel>
             </Border>
@@ -316,8 +325,8 @@ $window = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader
 $ui = @{}
 foreach ($n in @('Sidebar','PageWelcome','PageHow','PageOptions','PageProgress','PageTailscale','PageCreds','PageFinish',
                  'BtnBack','BtnNext','OptWrapper','OptDefender','OptUser','OptTailscale','OptFirewall','OptWU',
-                 'StepsPanel','OverallBar','ProgressSubtitle','TsStatus','TsDetail','TsLoginPanel','BtnTsUrl','TsUrlText',
-                 'TsDonePanel','TsIpText','TsAccountText','CredUser','CredPass','CredRdpFiles','BtnCopyPass','BtnCopyRdp','BtnOpenRdp','FinishSummary','FinishIcon')) {
+                 'StepsPanel','OverallBar','ProgressSubtitle','TsStatus','TsDetail','TsLoginPanel','BtnTsUrl','TsUrlText','BtnTsLogin','BtnTsRepair',
+                 'TsDonePanel','TsIpText','TsAccountText','CredUser','CredPass','CredRdpFiles','BtnCopyPass','BtnCopyRdp','BtnOpenRdp','BtnExportClient','FinishSummary','FinishIcon')) {
     $ui[$n] = $window.FindName($n)
 }
 
@@ -623,6 +632,10 @@ $timer.Add_Tick({
         Write-Log 'pasos terminados, avanzando de pagina'
         if ($env:RDPWRAP_WIZARD_AUTOPILOT -eq '1') {
             foreach ($k in $sync.Status.Keys) { Write-Log "resumen ${k}: $($sync.Status[$k] -join ' | ')" }
+            if ($sync.Creds) {
+                $z = Export-ClientPackage
+                Write-Log "AUTOPILOT: paquete cliente: $z"
+            }
             Write-Log 'AUTOPILOT: fin, cerrando ventana'
             $window.Close()
             return
@@ -651,23 +664,29 @@ $timer.Add_Tick({
 
 # --- Pagina Tailscale: login interactivo ------------------------------------
 $script:tsTimer = $null
-function Init-TailscalePage {
+function Get-TsExe {
     $exe = $sync.TailscaleExe
-    if (-not $exe -or -not (Test-Path $exe)) {
-        $ui.TsStatus.Text = 'Tailscale no esta instalado.'
-        $ui.TsDetail.Text = 'El paso de instalacion fallo o fue omitido.'
-        return
-    }
-    # Estado actual
-    $statusJson = & $exe status --json 2>$null | ConvertFrom-Json
-    if ($statusJson.BackendState -eq 'Running') {
-        Show-TsConnected $statusJson
-        return
-    }
-    $ui.TsStatus.Text = 'Tailscale instalado. Iniciando conexion...'
-    # Lanzar tailscale up y capturar URL de login (via cmd: Start-Process no
-    # permite -RedirectStandard* junto con -WindowStyle Hidden)
+    if (-not $exe) { $exe = 'C:\Program Files\Tailscale\tailscale.exe' }
+    if (Test-Path $exe) { return $exe }
+    return $null
+}
+
+function Get-TsState($exe) {
+    # NoState: el demonio no responde aun (pegado o iniciando)
+    $sj = & $exe status --json 2>$null | ConvertFrom-Json
+    $state = if ($sj -and $sj.BackendState) { $sj.BackendState } else { 'NoState' }
+    return [pscustomobject]@{ State=$state; Json=$sj }
+}
+
+function Start-TsLogin {
+    # Lanza 'tailscale up' (NO se mata: sale solo al conectar) y vigila URL/estado.
+    $exe = Get-TsExe
+    if (-not $exe) { return }
+    Write-Log 'tailscale: iniciando flujo de login (up)'
+    $ui.TsStatus.Text = 'Iniciando conexion con Tailscale...'
+    $ui.TsDetail.Text = ''
     $outFile = "$env:TEMP\ts-up-output.txt"
+    $script:tsOutFile = $outFile
     Remove-Item $outFile -Force -ErrorAction SilentlyContinue
     try {
         $psi = New-Object System.Diagnostics.ProcessStartInfo
@@ -678,7 +697,6 @@ function Init-TailscalePage {
         $psi.UseShellExecute = $false
         $psi.CreateNoWindow = $true
         $script:tsProc = [System.Diagnostics.Process]::Start($psi)
-        # Volcar la salida al archivo de forma asincrona
         $script:tsOutWriter = New-Object System.IO.StreamWriter($outFile, $false)
         $onData = { param($s, $e) if ($e.Data) { $script:tsOutWriter.WriteLine($e.Data); $script:tsOutWriter.Flush() } }
         $script:tsProc.add_OutputDataReceived($onData)
@@ -686,30 +704,69 @@ function Init-TailscalePage {
         $script:tsProc.BeginOutputReadLine()
         $script:tsProc.BeginErrorReadLine()
     } catch {
+        Write-Log "tailscale: no se pudo lanzar up: $($_.Exception.Message)"
         $ui.TsStatus.Text = "No se pudo iniciar tailscale up: $($_.Exception.Message)"
+        return
     }
+    $script:tsTicks = 0
+    if ($script:tsTimer) { $script:tsTimer.Stop() }
     $script:tsTimer = New-Object System.Windows.Threading.DispatcherTimer
     $script:tsTimer.Interval = [TimeSpan]::FromSeconds(2)
     $script:tsTimer.Add_Tick({
-        # Buscar URL de login
-        if ((Test-Path $outFile) -and $ui.TsLoginPanel.Visibility -ne 'Visible') {
-            $raw = Get-Content $outFile -Raw -ErrorAction SilentlyContinue
+        $script:tsTicks++
+        $exe2 = Get-TsExe
+        # Buscar URL de login -> abrirla en el navegador automaticamente
+        if ((Test-Path $script:tsOutFile) -and $ui.TsLoginPanel.Visibility -ne 'Visible') {
+            $raw = Get-Content $script:tsOutFile -Raw -ErrorAction SilentlyContinue
             if ($raw -match 'https://login\.tailscale\.com/a/\w+') {
                 $script:tsUrl = $Matches[0]
+                Write-Log "tailscale: URL de login $script:tsUrl (abriendo navegador)"
                 $ui.TsUrlText.Text = $script:tsUrl
                 $ui.TsLoginPanel.Visibility = 'Visible'
                 Fade-In $ui.TsLoginPanel
                 $ui.TsStatus.Text = 'Esperando que inicies sesion en el navegador...'
+                Start-Process $script:tsUrl
             }
         }
         # Estado
-        $sj = & $exe status --json 2>$null | ConvertFrom-Json
-        if ($sj.BackendState -eq 'Running') {
+        $st = Get-TsState $exe2
+        if ($st.State -eq 'Running') {
+            Write-Log 'tailscale: conectado'
             $script:tsTimer.Stop()
-            Show-TsConnected $sj
+            Show-TsConnected $st.Json
+        } elseif ($script:tsTicks -eq 15 -and $st.State -eq 'NoState') {
+            # 30s en NoState: demonio pegado, ofrecer reparacion
+            Write-Log 'tailscale: demonio pegado en NoState, sugiriendo reparacion'
+            $ui.TsDetail.Text = 'Tailscale no responde (pegado iniciando). Pulsa "Reparar conexion".'
         }
     })
     $script:tsTimer.Start()
+}
+
+function Repair-TsService {
+    Write-Log 'tailscale: reparando (reinicio de servicio)...'
+    $ui.TsStatus.Text = 'Reparando Tailscale...'
+    $ui.TsDetail.Text = 'Reiniciando el servicio, espera unos segundos.'
+    if ($script:tsTimer) { $script:tsTimer.Stop() }
+    Restart-Service Tailscale -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 8
+    Init-TailscalePage
+}
+
+function Init-TailscalePage {
+    $exe = Get-TsExe
+    if (-not $exe) {
+        $ui.TsStatus.Text = 'Tailscale no esta instalado.'
+        $ui.TsDetail.Text = 'El paso de instalacion fallo o fue omitido.'
+        return
+    }
+    $st = Get-TsState $exe
+    Write-Log "tailscale: estado al entrar a la pagina: $($st.State)"
+    if ($st.State -eq 'Running') {
+        Show-TsConnected $st.Json
+        return
+    }
+    Start-TsLogin
 }
 
 function Show-TsConnected($sj) {
@@ -736,6 +793,78 @@ function Show-TsConnected($sj) {
 }
 
 # --- Credenciales y resumen --------------------------------------------------
+function Export-ClientPackage {
+    # Genera en el Escritorio un zip con todo lo que necesita el equipo CLIENTE:
+    # los .rdp, credenciales.txt y el instalador de cliente (Tailscale + README).
+    if (-not $sync.Creds) { Write-Log 'exportacion omitida: no hay credenciales'; return $null }
+    $c = $sync.Creds
+
+    # Asegurar el .rdp de Tailscale aunque no se haya pasado por la pagina Tailscale.
+    # La IP se busca por varias vias (el demonio puede estar reiniciandose).
+    $tsIp = $script:tsConnectedIp
+    $tsExe = 'C:\Program Files\Tailscale\tailscale.exe'
+    for ($i = 0; $i -lt 3 -and -not $tsIp; $i++) {
+        if (Test-Path $tsExe) {
+            try {
+                $ip4 = & $tsExe ip -4 2>$null | Select-Object -First 1
+                if ($ip4 -and "$ip4".Trim() -match '^100\.') { $tsIp = "$ip4".Trim() }
+            } catch {}
+        }
+        if (-not $tsIp) {
+            try {
+                $tsIp = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+                    Where-Object { $_.IPAddress -match '^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.' } |
+                    Select-Object -First 1).IPAddress
+            } catch {}
+        }
+        if (-not $tsIp -and $i -lt 2) { Start-Sleep -Seconds 2 }
+    }
+    if (-not $tsIp) { Write-Log 'ADVERTENCIA: sin IP Tailscale; el paquete sale solo con el .rdp de LAN' }
+    if ($tsIp -and -not $c.RdpTs) {
+        $c.RdpTs = Join-Path ([Environment]::GetFolderPath('Desktop')) "rdp-$env:COMPUTERNAME-tailscale.rdp"
+        @("full address:s:$tsIp","username:s:rdp","prompt for credentials:i:1","screen mode id:i:2","use multimon:i:1","redirectclipboard:i:1","authentication level:i:2","enablecredsspsupport:i:1") |
+            Out-File $c.RdpTs -Encoding ascii
+    }
+
+    $stage = Join-Path $env:TEMP "rdpwrap-cliente-$env:COMPUTERNAME"
+    Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
+    New-Item -ItemType Directory -Path $stage | Out-Null
+
+    foreach ($f in @($c.RdpLan, $c.RdpTs) | Where-Object { $_ -and (Test-Path $_) }) { Copy-Item $f $stage }
+
+    $credTxt = @"
+RDP Wrapper - Credenciales de acceso remoto
+============================================
+Equipo host:  $env:COMPUTERNAME
+Usuario:      $($c.User)
+Contrasena:   $($c.Pass)
+
+Archivos .rdp incluidos:
+- rdp-$env:COMPUTERNAME.rdp            (misma red local / LAN)
+- rdp-$env:COMPUTERNAME-tailscale.rdp  (desde cualquier lugar, via Tailscale)
+
+La contrasena se regenera cada vez que se ejecuta el asistente en el host.
+Si cambia, vuelve a exportar este paquete desde la pagina de credenciales.
+"@
+    [System.IO.File]::WriteAllText((Join-Path $stage 'credenciales.txt'), $credTxt, (New-Object System.Text.UTF8Encoding $true))
+
+    # Plantillas del cliente (README, instalador) con sustitucion de valores
+    $tplDir = Join-Path $scriptDir 'cliente'
+    foreach ($t in Get-ChildItem $tplDir -File -ErrorAction SilentlyContinue) {
+        $content = [System.IO.File]::ReadAllText($t.FullName)
+        $content = $content.Replace('{{HOST}}', $env:COMPUTERNAME).Replace('{{TSIP}}', "$tsIp").Replace('{{USER}}', $c.User)
+        $enc = if ($t.Extension -eq '.bat') { [System.Text.Encoding]::ASCII } else { New-Object System.Text.UTF8Encoding $true }
+        [System.IO.File]::WriteAllText((Join-Path $stage $t.Name), $content, $enc)
+    }
+
+    $zip = Join-Path ([Environment]::GetFolderPath('Desktop')) "RDPWrap-Cliente-$env:COMPUTERNAME.zip"
+    Remove-Item $zip -Force -ErrorAction SilentlyContinue
+    Compress-Archive -Path "$stage\*" -DestinationPath $zip -CompressionLevel Optimal
+    Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Log "paquete cliente exportado: $zip"
+    return $zip
+}
+
 function Show-Creds {
     if ($sync.Creds) {
         $ui.CredUser.Text = $sync.Creds.User
@@ -800,6 +929,22 @@ $ui.BtnTsUrl.Add_Click({
     }
 })
 
+$ui.BtnTsLogin.Add_Click({
+    Write-Log 'tailscale: boton Login pulsado'
+    Start-TsLogin
+})
+
+$ui.BtnTsRepair.Add_Click({
+    $ui.TsStatus.Text = 'Reparando Tailscale...'
+    $ui.TsDetail.Text = 'Reiniciando el servicio, espera unos segundos.'
+    if ($script:tsTimer) { $script:tsTimer.Stop() }
+    # Dejar que la UI repinte antes de bloquear con el reinicio del servicio
+    $t = New-Object System.Windows.Threading.DispatcherTimer
+    $t.Interval = [TimeSpan]::FromMilliseconds(300)
+    $t.Add_Tick({ $t.Stop(); Repair-TsService })
+    $t.Start()
+})
+
 $ui.BtnCopyPass.Add_Click({
     if ($sync.Creds) { [System.Windows.Clipboard]::SetText($sync.Creds.Pass) }
     $ui.BtnCopyPass.Content = 'Copiada!'
@@ -821,6 +966,16 @@ $ui.BtnOpenRdp.Add_Click({
         Start-Process explorer.exe -ArgumentList "/select,`"$($sync.Creds.RdpLan)`""
     } else {
         Start-Process explorer.exe -ArgumentList ([Environment]::GetFolderPath('Desktop'))
+    }
+})
+
+$ui.BtnExportClient.Add_Click({
+    $zip = Export-ClientPackage
+    if ($zip) {
+        $ui.BtnExportClient.Content = 'Exportado!'
+        Start-Process explorer.exe -ArgumentList "/select,`"$zip`""
+    } else {
+        $ui.BtnExportClient.Content = 'Sin credenciales'
     }
 })
 
